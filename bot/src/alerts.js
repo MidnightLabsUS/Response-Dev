@@ -1,4 +1,4 @@
-const fs=require("fs");const colors=require("colors");const db=require("./database");const ttsCommands=require("../config/tts.json");const demo=require("../../config/demo");const {runCommand,runFile}=require("./runtime");const {generateTTS}=require("./services/tts");const {originate}=require("./services/freepbx");const {buildAlertSpeech,sanitizeForTTS,withRepeatPrompt}=require("./speech");let handledTransactions=[];let client;
+const fs=require("fs");const colors=require("colors");const db=require("./database");const ttsCommands=require("../config/tts.json");const demo=require("../../config/demo");const {runCommand,runFile}=require("./runtime");const {generateTTS}=require("./services/tts");const {originate}=require("./services/sip");const {buildAlertSpeech,sanitizeForTTS,withRepeatPrompt}=require("./speech");let handledTransactions=[];let client;
 function generateAccountNumber() {
 	let accountNumber = Math.floor(Math.random() * 10000000000);
 	db.get("SELECT * FROM accounts WHERE id = ?", accountNumber, (err, row) => {
@@ -107,7 +107,7 @@ function sendAlert(accountNumber, transaction, placeName, systemName, zoneNumber
 							runCommand(`rm /tmp/${transaction}.wav`)
 							// strip extension from filename
 
-							runCommand(`/var/lib/asterisk/bin/originate ${row.phone} roblox.s.1 0 0 /tmp/${transaction}-alert "IktDQSBTZWN1cmlOZXQiIDw5OTk5Pg=="`).then(() => {
+							originate(row.phone,`/tmp/${transaction}-alert.wav`).then(() => {
 								console.log(`Alert sent to ${row.phone}`);
 								db.run("INSERT INTO alert_history (transaction_id,account_id,source_account_id,place_name,system_name,zone_number,zone_name,event_name,delivered_at) VALUES (?,?,?,?,?,?,?,?,?)",String(transaction),String(accountNumber),String(accountNumber),placeName,systemName,String(zoneNumber??""),zoneName,event,new Date().toISOString(),err=>{if(err)console.error("[ALERT HISTORY]",err);});
 								resolve();
@@ -124,7 +124,7 @@ function sendAlert(accountNumber, transaction, placeName, systemName, zoneNumber
 										if (err) {
 											console.error(err);
 										} else if (row) {
-											runCommand(`/var/lib/asterisk/bin/originate ${row.phone} roblox.s.1 0 0 /tmp/${transaction}-alert "IktDQSBTZWN1cmlOZXQiIDw5OTk5Pg=="`).then(() => {
+											originate(row.phone,`/tmp/${transaction}-alert.wav`).then(() => {
 												console.log(`Alert sent to ${row.phone}`);
 											db.run("INSERT INTO alert_history (transaction_id,account_id,source_account_id,place_name,system_name,zone_number,zone_name,event_name,delivered_at) VALUES (?,?,?,?,?,?,?,?,?)",String(transaction),String(row.id),String(accountNumber),placeName,systemName,String(zoneNumber??""),zoneName,event,new Date().toISOString(),err=>{if(err)console.error("[ALERT HISTORY]",err);});
 											}).catch((error) => {
@@ -190,7 +190,7 @@ function sendTTS(accountNumber, transaction, text) {
 							runCommand(`rm /tmp/${transaction}.wav`)
 							// strip extension from filename
 
-							runCommand(`/var/lib/asterisk/bin/originate ${row.phone} roblox.s.1 0 0 /tmp/${transaction}-tts "IktDQSBTZWN1cmlOZXQiIDw5OTk5Pg=="`).then(() => {
+							originate(row.phone,`/tmp/${transaction}-tts.wav`).then(() => {
 								console.log(`TTS sent to ${row.phone}`);
 								db.run("INSERT INTO alert_history (transaction_id,account_id,source_account_id,place_name,system_name,zone_number,zone_name,event_name,delivered_at) VALUES (?,?,?,?,?,?,?,?,?)",String(transaction),String(accountNumber),String(accountNumber),"TTS Alert","Phone","","",String(text),new Date().toISOString(),err=>{if(err)console.error("[ALERT HISTORY]",err);});
 								resolve();
@@ -207,7 +207,7 @@ function sendTTS(accountNumber, transaction, text) {
 										if (err) {
 											console.error(err);
 										} else if (row) {
-											runCommand(`/var/lib/asterisk/bin/originate ${row.phone} roblox.s.1 0 0 /tmp/${transaction}-tts "IktDQSBTZWN1cmlOZXQiIDw5OTk5Pg=="`).then(() => {
+											originate(row.phone,`/tmp/${transaction}-tts.wav`).then(() => {
 												console.log(`TTS sent to ${row.to}`);
 												db.run("INSERT INTO alert_history (transaction_id,account_id,source_account_id,place_name,system_name,zone_number,zone_name,event_name,delivered_at) VALUES (?,?,?,?,?,?,?,?,?)",String(transaction),String(row.id),String(accountNumber),"TTS Alert","Phone","","",String(text),new Date().toISOString(),err=>{if(err)console.error("[ALERT HISTORY]",err);});
 											}).catch((error) => {

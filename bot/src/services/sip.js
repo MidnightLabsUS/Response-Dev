@@ -1,0 +1,42 @@
+const dgram=require("dgram"),fs=require("fs"),crypto=require("crypto");
+const hash=s=>crypto.createHash("md5").update(s).digest("hex");
+const cfg=()=>{for(const k of["SIP_SERVER","SIP_SERVER_PORT","USERNAME","AUTHUSERNAME","PASSWORD"])if(!process.env[k])throw new Error(k+" is required")};
+function wav(f){const b=fs.readFileSync(f),fmt=b.indexOf(Buffer.from("fmt ")),data=b.indexOf(Buffer.from("data"));if(fmt<0||data<0)throw Error("Invalid WAV");const ch=b.readUInt16LE(fmt+10),rate=b.readUInt32LE(fmt+12),bits=b.readUInt16LE(fmt+22);if(ch!==1||rate!==8000||bits!==16)throw Error("Audio must be 8kHz mono PCM16");return b.subarray(data+8)}
+function ulaw(x){const BIAS=132,CLIP=32635;let s=x<0?128:0;if(x<0)x=-x;if(x>CLIP)x=CLIP;x+=BIAS;let e=7;for(let t=x>>7;t>1;t>>=1)e--;let m=(x>>(e+3))&15;return(~(s|(e<<4)|m))&255}
+function req(method,uri,h,body=""){return method+" "+uri+" SIP/2.0
+Via: SIP/2.0/UDP "+h.via+";branch="+h.branch+";rport
+Max-Forwards: 70
+From: <sip:"+process.env.USERNAME+"@"+h.server+">;tag="+h.tag+"
+To: <sip:"+h.number+"@"+h.server+">"+(h.toTag?";tag="+h.toTag:"")+"
+Call-ID: "+h.callid+"
+CSeq: "+h.cseq+" "+method+"
+Contact: <sip:"+process.env.USERNAME+"@"+h.via+">
+"+(method==="INVITE"?"Allow: INVITE, ACK, BYE, CANCEL
+Content-Type: application/sdp
+":"")+"User-Agent: SmartBoot Response
+Content-Length: "+Buffer.byteLength(body)+"
+
+"+body}
+function parse(x){const [h,...rest]=x.split("
+"),m=h.match(/^SIP/2.0 (d+) (.*)$/),o={code:m?+m[1]:0,reason:m?m[2]:"",headers:{},body:rest.join("
+
+")};for(const l of rest){const i=l.indexOf(":");if(i>0)o.headers[l.slice(0,i).toLowerCase()]=l.slice(i+1).trim()}return o}
+function auth(h,method,uri){const m=(h["www-authenticate"]||h["proxy-authenticate"]||"").match(/realm="([^"]+)"[^
+]*nonce="([^"]+)"/);if(!m)return null;const response=hash(hash(process.env.AUTHUSERNAME+":"+m[1]+":"+process.env.PASSWORD)+":"+m[2]+":"+hash(method+":"+uri));return "Digest username=""+process.env.AUTHUSERNAME+"",realm=""+m[1]+"",nonce=""+m[2]+"",uri=""+uri+"",response=""+response+"""}
+function send(s,msg,host,port){return new Promise((res,rej)=>s.send(Buffer.from(msg),port,host,e=>e?rej(e):res()))}
+async function originate(number,audio){cfg();number=String(number).replace(/[^0-9+]/g,"");if(!number)throw Error("Invalid destination phone number");const data=wav(audio),sock=dgram.createSocket("udp4"),server=process.env.SIP_SERVER,port=Number(process.env.SIP_SERVER_PORT),via=process.env.SIP_LOCAL_IP||"127.0.0.1",tag=crypto.randomBytes(8).toString("hex"),callid=crypto.randomBytes(12).toString("hex")+"@"+via,uri="sip:"+number+"@"+server,branch=()=> "z9hG4bK"+crypto.randomBytes(8).toString("hex");await new Promise((r,j)=>sock.bind(0,r));const local=sock.address().port,sdp="v=0
+o=smartboot 1 1 IN IP4 "+via+"
+s=SmartBoot
+c=IN IP4 "+via+"
+t=0 0
+m=audio "+local+" RTP/AVP 0
+a=rtpmap:0 PCMU/8000
+a=ptime:20
+a=sendrecv
+";let cseq=1;const receive=()=>new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(Error("SIP response timeout")),30000),fn=m=>{clearTimeout(t);sock.off("message",fn);resolve(parse(m.toString()))};sock.on("message",fn)});try{let h={via,branch:branch(),tag,callid,number,server,cseq},r=await send(sock,req("INVITE",uri,h,sdp),server,port).then(()=>receive());if(r.code===401||r.code===407){const a=auth(r.headers,"INVITE",uri);if(!a)throw Error("SIP authentication challenge missing");h.cseq=++cseq;h.branch=branch();let m=req("INVITE",uri,h,sdp);m=m.replace("Content-Type: application/sdp
+","Authorization: "+a+"
+Content-Type: application/sdp
+");r=await send(sock,m,server,port).then(()=>receive())}if(r.code<200||r.code>=300)throw Error("SIP INVITE failed: "+r.code+" "+r.reason);h.toTag=(r.headers.to.match(/tag=([^;>]+)/)||[])[1];h.cseq=++cseq;h.branch=branch();await send(sock,req("ACK",uri,h),server,port);const remote=(r.body.match(/c=IN IP4 ([^
+]+)/)||[])[1],rp=+(r.body.match(/m=audio (d+)/)||[])[1];if(!remote||!rp)throw Error("SIP response did not provide RTP destination");const ssrc=crypto.randomBytes(4).readUInt32BE(0);for(let i=0,seq=0;i<data.length;i+=320,seq++){const p=Buffer.alloc(172);p.writeUInt8(128,0);p.writeUInt8(seq%256,1);p.writeUInt32BE(seq*160>>>0,4);p.writeUInt32BE(ssrc,8);for(let j=0;j<160&&i+j*2<data.length;j++)p[12+j]=ulaw(data.readInt16LE(i+j*2));await send(sock,p,remote,rp);await new Promise(r=>setTimeout(r,20))}h.cseq=++cseq;h.branch=branch();await send(sock,req("BYE",uri,h),server,port);return true}finally{sock.close()}}
+async function checkConnection(){cfg();return true}
+module.exports={originate,checkConnection};

@@ -1,13 +1,14 @@
 # SmartBoot Response
 
-SmartBoot Response is a Discord-connected alerting and phone notification service for SmartBoot systems. It connects Discord account management with a FreePBX/Asterisk telephony backend.
+SmartBoot Response is a Discord-connected alerting and phone notification service for SmartBoot systems.
 
 Built by **Midnight Labs**.
 
 ## Features
 
 - Phone registration and verification
-- Automated voice alerts through FreePBX
+- Automated voice alerts through direct SIP
+- SIP digest authentication
 - Local text-to-speech with Piper
 - Account management and alert forwarding
 - Configurable TTS voices
@@ -18,24 +19,34 @@ Built by **Midnight Labs**.
 
 - Docker Engine and Docker Compose
 - A Discord application and bot token
-- A FreePBX/Asterisk server with a dedicated AMI account
-- A dedicated SFTP account on the PBX
-- Network access from the host to the PBX AMI and SFTP ports
+- A SIP provider or SIP server that supports outbound calls
+- Valid SIP authentication credentials
+- Network access to the SIP server
 
 ## Quick start
 
-Clone the public branch:
+Clone the response-no-pbx branch:
 
 ```bash
-git clone -b public-discordbot https://github.com/MidnightLabsUS/SmartBoot-Response.git
-cd SmartBoot-Response
+git clone -b response-no-pbx https://github.com/MidnightLabsUS/Response-Dev.git
+cd Response-Dev
 cp .env.example .env
 ```
 
-Edit `.env` and configure the Discord and PBX settings. Place your PBX SSH private key at `./secrets/pbx_ed25519`, then restrict its permissions:
+Edit `.env` and configure the Discord and SIP settings:
+
+```env
+OUTBOUND_CALLERID=
+USERNAME=
+AUTHUSERNAME=
+PASSWORD=
+SIP_SERVER=
+SIP_SERVER_PORT=
+```
+
+Then start the service:
 
 ```bash
-chmod 600 secrets/pbx_ed25519
 docker compose up -d --build
 ```
 
@@ -50,21 +61,22 @@ Important settings:
 | Variable | Purpose |
 |---|---|
 | `DISCORD_TOKEN` | Discord bot token |
-| `PBX_HOST` | FreePBX server address |
-| `PBX_AMI_USERNAME` / `PBX_AMI_SECRET` | Dedicated AMI credentials |
-| `PBX_SFTP_USERNAME` | Dedicated SFTP username |
-| `PBX_SFTP_PRIVATE_KEY` | Path to the SFTP private key inside the container |
-| `PBX_AUDIO_PATH` | Destination directory as seen by the SFTP account |
+| `OUTBOUND_CALLERID` | Caller ID used for outbound calls |
+| `USERNAME` | SIP username |
+| `AUTHUSERNAME` | SIP authentication username |
+| `PASSWORD` | SIP authentication password |
+| `SIP_SERVER` | SIP server address |
+| `SIP_SERVER_PORT` | SIP server port |
 | `ADMIN_DISCORD_IDS` | Comma-separated administrator Discord user IDs |
 | `ADMIN_ROLE_IDS` | Comma-separated administrator role IDs |
 
-The SFTP destination must be writable by the dedicated SFTP account. The path is relative to the SFTP account's visible filesystem; for a chroot exposing an `uploads` directory, use `/uploads`.
+The phone numbers stored in SmartBoot Response are used as outbound SIP destinations.
 
 ## Discord commands
 
 | Command | Description |
 |---|---|
-| `/setup` | Register a phone number or PBX extension |
+| `/setup` | Register a phone number |
 | `/verify` | Verify a destination using the call code |
 | `/resend-code` | Resend a verification call |
 | `/cancel-setup` | Cancel a pending registration |
@@ -90,7 +102,7 @@ The SFTP destination must be writable by the dedicated SFTP account. The path is
 | `POST /api/v1/tts` | Request a text-to-speech phone message |
 | `/api/v1/websocket/:accountNumber` | WebSocket connection |
 
-Use HTTPS through a reverse proxy for public API access. Keep the PBX AMI and SFTP services private and restrict access to trusted source IPs.
+Use HTTPS through a reverse proxy for public API access. Keep SIP credentials private and restrict access to trusted networks.
 
 ## Data and operations
 
@@ -107,10 +119,10 @@ docker compose down
 
 ## Security
 
-- Never commit `.env`, tokens, webhook URLs, AMI credentials, or SSH private keys.
-- Keep `secrets/` private and restrict private-key permissions.
-- Use dedicated, least-privilege PBX credentials.
-- Restrict AMI and SFTP access by source IP; do not expose AMI to the public internet.
+- Never commit `.env`, tokens, webhook URLs, SIP credentials, or private keys.
+- Keep SIP credentials private.
+- Use dedicated SIP credentials for the application.
+- Restrict SIP access when supported by your provider.
 - Back up the persistent database volume.
 - Review your configuration before exposing the API.
 

@@ -1,4 +1,4 @@
-FROM node:22-trixie-slim
+FROM node:20-bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg openssh-client python3 python3-venv build-essential && rm -rf /var/lib/apt/lists/*
 

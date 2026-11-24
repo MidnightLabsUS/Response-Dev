@@ -51,7 +51,7 @@ client.on("interactionCreate", async (interaction) => {
 			switch (interaction.commandName) {
 
 				case "alerts":
-					await interaction.deferReply({ephemeral:true});
+					await interaction.deferReply({flags:64});
 					db.all("SELECT h.* FROM alert_history h JOIN accounts a ON a.id=h.account_id WHERE a.discord_id=? ORDER BY h.delivered_at DESC LIMIT 10",interaction.user.id,(err,rows)=>{
 						if(err){console.error(err);return interaction.editReply("Could not load alert history. Please contact support.");}
 						if(!rows?.length)return interaction.editReply("No delivered alerts found for your accounts.");
@@ -60,8 +60,8 @@ client.on("interactionCreate", async (interaction) => {
 					});
 					break;
 				case "admin":
-					if(!isAdmin(interaction))return interaction.reply({content:"You are not authorized to use administrator commands.",ephemeral:true});
-					await interaction.deferReply({ephemeral:true});
+					if(!isAdmin(interaction))return interaction.reply({content:"You are not authorized to use administrator commands.",flags:64});
+					await interaction.deferReply({flags:64});
 					db.get("SELECT COUNT(*) AS total,SUM(CASE WHEN verified=1 THEN 1 ELSE 0 END) AS verified,SUM(CASE WHEN verified=0 THEN 1 ELSE 0 END) AS pending FROM accounts",(err,stats)=>{
 						if(err){console.error(err);return interaction.editReply("Could not load administrator statistics.");}
 						db.all("SELECT transaction_id,account_id,event_name,place_name,delivered_at FROM alert_history ORDER BY delivered_at DESC LIMIT 5",(e,rows)=>{
@@ -72,8 +72,8 @@ client.on("interactionCreate", async (interaction) => {
 					});
 					break;
 				case "lookup":
-					if(!isAdmin(interaction))return interaction.reply({content:"You are not authorized to use administrator commands.",ephemeral:true});
-					await interaction.deferReply({ephemeral:true});
+					if(!isAdmin(interaction))return interaction.reply({content:"You are not authorized to use administrator commands.",flags:64});
+					await interaction.deferReply({flags:64});
 					const lookup=interaction.options.getString("query").trim();
 					const digits=lookup.replace(/\D/g,"");
 					db.all("SELECT id,discord_id,phone,verified,ttsOverride FROM accounts WHERE CAST(id AS TEXT)=? OR discord_id=? OR phone LIKE ? ORDER BY id DESC LIMIT 10",lookup,lookup,"%"+(digits||lookup)+"%",(err,rows)=>{
@@ -84,14 +84,14 @@ client.on("interactionCreate", async (interaction) => {
 					});
 					break;
 				case "status":
-					await interaction.deferReply({ephemeral:true});
+					await interaction.deferReply({flags:64});
 					const dbOk=await new Promise(resolve=>db.get("SELECT 1 AS ok",err=>resolve(!err)));
 					const pbxOk=checkConnection?await checkConnection().then(()=>true).catch(()=>false):false;
 					const discordOk=client.isReady();
-					interaction.editReply("**SmartBoot Service Status**\nDiscord: "+(discordOk?"Online":"Offline")+"\nAPI: Online\nDatabase: "+(dbOk?"Connected":"Unavailable")+"\nFreePBX AMI: "+(pbxOk?"Connected":"Unavailable"));
+					interaction.editReply("**SmartBoot Service Status**\nDiscord: "+(discordOk?"Online":"Offline")+"\nAPI: Online\nDatabase: "+(dbOk?"Connected":"Unavailable")+"\nSIP: "+(pbxOk?"Configured":"Unavailable"));
 					break;
 				case "setup":
-					await interaction.deferReply({ephemeral:true});
+					await interaction.deferReply({flags:64});
 					phone_number = interaction.options.getString("phone_number");
 					// Check that phone_number is either a 4 digit number starting with 1, a 7 digit number, a 10 digit number, or an 11 digit number starting with 1
 					if(!/^(?:\d{2,6}|\d{7}|\d{10}|1\d{10})$/.test(phone_number)) {
@@ -117,7 +117,7 @@ client.on("interactionCreate", async (interaction) => {
 											content: `Your account has been created. A verification call is being placed to ${phone_number}. Enter the six-digit code with \`/verify\` to activate it.`,
 											ephemeral: true
 										})
-									}).catch(err => interaction.editReply({content:err.message.startsWith("Cooldown")?`A call was sent recently. Wait ${err.message.split(":")[1]||60} seconds before resending.`:"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
+									}).catch(err => interaction.editReply({content:err.message.startsWith("Cooldown")?`A call was sent recently. Wait ${err.message.split(":")[1]||60} seconds before resending.`:"We couldn't place your verification call. Please try again or contact support.",flags:64}))
 								}
 							});
 						}
@@ -145,7 +145,7 @@ client.on("interactionCreate", async (interaction) => {
 					});
 					break;
 				case "resend-code":
-					await interaction.deferReply({ephemeral:true});
+					await interaction.deferReply({flags:64});
 					// Find the account thats unverified owned by the user
 					db.get("SELECT * FROM accounts WHERE discord_id = ? AND verified = 0", interaction.user.id, (err, row) => {
 						if (err) {
@@ -156,7 +156,7 @@ client.on("interactionCreate", async (interaction) => {
 									content: `A new verification call has been placed to ${row.phone}. Enter the six-digit code with \`/verify\` to finish setup.`,
 									ephemeral: true
 								});
-							}).catch(err=>interaction.editReply({content:err.message.startsWith("Cooldown")?`A call was sent recently. Wait ${err.message.split(":")[1]||60} seconds before resending.`:"We couldn't place your verification call. Please try again or contact support.",ephemeral:true}))
+							}).catch(err=>interaction.editReply({content:err.message.startsWith("Cooldown")?`A call was sent recently. Wait ${err.message.split(":")[1]||60} seconds before resending.`:"We couldn't place your verification call. Please try again or contact support.",flags:64}))
 						} else {
 							interaction.editReply({ ephemeral: true, content: "No pending setup found. Run `/setup` to register a destination." });
 						}

@@ -95,7 +95,7 @@ client.on("interactionCreate", async (interaction) => {
 					phone_number = interaction.options.getString("phone_number");
 					// Check that phone_number is either a 4 digit number starting with 1, a 7 digit number, a 10 digit number, or an 11 digit number starting with 1
 					if(!/^(?:\d{2,6}|\d{7}|\d{10}|1\d{10})$/.test(phone_number)) {
-						interaction.editReply({ ephemeral: true, content: "Invalid destination. Enter a 2–6 digit PBX extension, 7-digit local number, or 10/11-digit phone number." });
+						interaction.editReply({ flags:64, content: "Invalid destination. Enter a 2–6 digit PBX extension, 7-digit local number, or 10/11-digit phone number." });
 						return;
 					}
 					// check that the user doesnt have any unverified accounts already (check discord_id and verified)
@@ -104,7 +104,7 @@ client.on("interactionCreate", async (interaction) => {
 							console.error(err);
 							interaction.editReply({content:"Database error. Please contact support."});
 						} else if (row) {
-							sendVerificationCode(row.id).then(() => interaction.editReply({content:`A verification call has been placed to ${row.phone}. Enter the six-digit code with \`/verify\` to activate your account.`})).catch(err=>interaction.editReply({content:err.message.startsWith("Cooldown")?`A call was sent recently. Wait ${err.message.split(":")[1]||60} seconds before resending.`:"We couldn't place your verification call. Check the destination and try again."}));
+							sendVerificationCode(row.id).then(() => interaction.editReply({content:`A verification call has been placed to ${row.phone}. Enter the six-digit code with \`/verify\` to activate your account.`})).catch(err=>interaction.editReply({content:err.message.startsWith("Cooldown")?`A call was sent recently. Wait ${err.message.split(":")[1]||60} seconds before resending.`:(console.error("[VERIFY] Call failed:",err),err.message||"We couldn't place your verification call. Check the destination and try again.")}));
 						} else {
 							accountNumber = generateAccountNumber();
 							verification_code = generatePhoneCode();
@@ -115,9 +115,9 @@ client.on("interactionCreate", async (interaction) => {
 									sendVerificationCode(accountNumber).then(() => {
 										interaction.editReply({
 											content: `Your account has been created. A verification call is being placed to ${phone_number}. Enter the six-digit code with \`/verify\` to activate it.`,
-											ephemeral: true
+											flags:64
 										})
-									}).catch(err => interaction.editReply({content:err.message.startsWith("Cooldown")?`A call was sent recently. Wait ${err.message.split(":")[1]||60} seconds before resending.`:"We couldn't place your verification call. Please try again or contact support.",flags:64}))
+									}).catch(err => interaction.editReply({content:err.message.startsWith("Cooldown")?`A call was sent recently. Wait ${err.message.split(":")[1]||60} seconds before resending.`:(console.error("[VERIFY] Call failed:",err),err.message||"We couldn't place your verification call. Please try again or contact support."),flags:64}))
 								}
 							});
 						}
@@ -135,12 +135,12 @@ client.on("interactionCreate", async (interaction) => {
 								} else {
 									interaction.reply({
 										content: `Your account is verified and ready to use. Account ID: \`${row.id}\`.\nFor help setting up the dialer, feel free to contact a member of staff!`,
-										ephemeral: true
+										flags:64
 									})
 								}
 							});
 						} else {
-							interaction.reply({ ephemeral: true, content: "Invalid verification code." });
+							interaction.reply({ flags:64, content: "Invalid verification code." });
 						}
 					});
 					break;
@@ -154,11 +154,11 @@ client.on("interactionCreate", async (interaction) => {
 							sendVerificationCode(row.id).then(() => {
 								interaction.editReply({
 									content: `A new verification call has been placed to ${row.phone}. Enter the six-digit code with \`/verify\` to finish setup.`,
-									ephemeral: true
+									flags:64
 								});
 							}).catch(err=>interaction.editReply({content:err.message.startsWith("Cooldown")?`A call was sent recently. Wait ${err.message.split(":")[1]||60} seconds before resending.`:"We couldn't place your verification call. Please try again or contact support.",flags:64}))
 						} else {
-							interaction.editReply({ ephemeral: true, content: "No pending setup found. Run `/setup` to register a destination." });
+							interaction.editReply({ flags:64, content: "No pending setup found. Run `/setup` to register a destination." });
 						}
 					});
 					break;
@@ -174,10 +174,10 @@ client.on("interactionCreate", async (interaction) => {
 							});
 							interaction.reply({
 								content: `Your verified accounts:\n${accountList}`,
-								ephemeral: true
+								flags:64
 							});
 						} else {
-							interaction.reply({ ephemeral: true, content: "No verified accounts found. Run `/setup` to register one." });
+							interaction.reply({ flags:64, content: "No verified accounts found. Run `/setup` to register one." });
 						}
 					});
 					break;
@@ -198,14 +198,14 @@ client.on("interactionCreate", async (interaction) => {
 										} else {
 											interaction.reply({
 												content: "Account deleted successfully. Associated alert-forwarding links were also removed.",
-												ephemeral: true
+												flags:64
 											});
 										}
 									});
 								}
 							});
 						} else {
-							interaction.reply({ ephemeral: true, content: "You don't own that account." });
+							interaction.reply({ flags:64, content: "You don't own that account." });
 						}
 					});
 					break;
@@ -217,7 +217,7 @@ client.on("interactionCreate", async (interaction) => {
 							console.error(err);
 						} else if (row) {
 							if (!/^(1\d{3}|\d{7}|\d{10}|1\d{10})$/.test(phone_number)) {
-								interaction.reply({ ephemeral: true, content: "Invalid phone number. Please enter one of the following:\n- A 4 digit LiteNet extension.\n- A 7 digit TandmX number\n- An 10 digit US phone number.\n- An 11 digit US phone number" });
+								interaction.reply({ flags:64, content: "Invalid phone number. Please enter one of the following:\n- A 4 digit LiteNet extension.\n- A 7 digit TandmX number\n- An 10 digit US phone number.\n- An 11 digit US phone number" });
 								return;
 							}
 							verification_code = generatePhoneCode();
@@ -228,12 +228,12 @@ client.on("interactionCreate", async (interaction) => {
 									sendVerificationCode(accountNumber);
 									interaction.reply({
 										content: `Destination updated to ${phone_number}. A verification call is being placed now. Enter the six-digit code with `/confirm` to reactivate this account.`,
-										ephemeral: true
+										flags:64
 									});
 								}
 							});
 						} else {
-							interaction.reply({ content: "You don't own that account.", ephemeral: true });
+							interaction.reply({ content: "You don't own that account.", flags:64 });
 						}
 					});
 					break;
@@ -249,12 +249,12 @@ client.on("interactionCreate", async (interaction) => {
 								} else {
 									interaction.reply({
 										content: "Pending account setup cancelled. The unverified account has been deleted.",
-										ephemeral: true
+										flags:64
 									});
 								}
 							});
 						} else {
-							interaction.reply({ content: "No pending setup found. Run `/setup` to register a destination.", ephemeral: true });
+							interaction.reply({ content: "No pending setup found. Run `/setup` to register a destination.", flags:64 });
 						}
 					});
 					break;
@@ -276,27 +276,27 @@ client.on("interactionCreate", async (interaction) => {
 											console.error(err);
 										}
 										if (row) {
-											return interaction.reply({ content: "These accounts are already linked; no changes were made.", ephemeral: true });
+											return interaction.reply({ content: "These accounts are already linked; no changes were made.", flags:64 });
 										} else {
 											if (accountNumberFrom == accountNumberTo) {
-												return interaction.reply({ content: "An account cannot forward alerts to itself.", ephemeral: true });
+												return interaction.reply({ content: "An account cannot forward alerts to itself.", flags:64 });
 											}
 											db.run("INSERT INTO links (linked_from, linked_to, discord_id) VALUES (?, ?, ?)", accountNumberFrom, accountNumberTo, interaction.user.id, (err) => {
 												if (err) {
 													console.error(err);
 												} else {
-													return interaction.reply({ content: "Alert forwarding enabled successfully.", ephemeral: true });
+													return interaction.reply({ content: "Alert forwarding enabled successfully.", flags:64 });
 												}
 											});
 										}
 									});
 
 								} else {
-									return interaction.reply({ content: "You don't own that account.", ephemeral: true });
+									return interaction.reply({ content: "You don't own that account.", flags:64 });
 								}
 							});
 						} else {
-							return interaction.reply({ content: "You don't own that account.", ephemeral: true });
+							return interaction.reply({ content: "You don't own that account.", flags:64 });
 						}
 					});
 					break;
@@ -316,15 +316,15 @@ client.on("interactionCreate", async (interaction) => {
 										if (err) {
 											console.error(err);
 										} else {
-											return interaction.reply({ content: "Alert forwarding disabled successfully.", ephemeral: true });
+											return interaction.reply({ content: "Alert forwarding disabled successfully.", flags:64 });
 										}
 									});
 								} else {
-									return interaction.reply({ content: "You don't own that account.", ephemeral: true });
+									return interaction.reply({ content: "You don't own that account.", flags:64 });
 								}
 							});
 						} else {
-							return interaction.reply({ content: "You don't own that account.", ephemeral: true });
+							return interaction.reply({ content: "You don't own that account.", flags:64 });
 						}
 					});
 					break;
@@ -340,10 +340,10 @@ client.on("interactionCreate", async (interaction) => {
 							});
 							interaction.reply({
 								content: `Your alert-forwarding links:\n${linkList}`,
-								ephemeral: true
+								flags:64
 							});
 						} else {
-							interaction.reply({ content: "No alert-forwarding links are configured for your accounts.", ephemeral: true });
+							interaction.reply({ content: "No alert-forwarding links are configured for your accounts.", flags:64 });
 						}
 					});
 					break;
@@ -354,14 +354,14 @@ client.on("interactionCreate", async (interaction) => {
 							console.error(err)
 						} else if (row) {
 							newVoice = interaction.options.getString("voice")
-							if (!ttsCommands[newVoice]) return interaction.reply({ content: "That voice option is not available. Please choose one of the listed voices.", ephemeral: true });
+							if (!ttsCommands[newVoice]) return interaction.reply({ content: "That voice option is not available. Please choose one of the listed voices.", flags:64 });
 							console.log(newVoice)
 							db.run("UPDATE accounts SET ttsOverride = ? WHERE id = ?", newVoice, accountNumber, (row, err) => {
 								if (err) {
 									console.error(err)
-									return interaction.reply({ content: "An error occured, Contact system administrator", ephemeral: true });
+									return interaction.reply({ content: "An error occured, Contact system administrator", flags:64 });
 								}
-								return interaction.reply({ content: "Alert voice updated successfully.", ephemeral: true })
+								return interaction.reply({ content: "Alert voice updated successfully.", flags:64 })
 							})
 						}
 					})

@@ -1,6 +1,6 @@
 FROM node:20-bookworm-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg openssh-client python3 python3-venv build-essential && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg openssh-client python3 python3-venv python3-setuptools build-essential && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m venv /opt/piper && /opt/piper/bin/pip install --no-cache-dir piper-tts
 
@@ -9,7 +9,7 @@ RUN /opt/piper/bin/python -m piper.download_voices en_US-lessac-medium
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm_config_build_from_source=true npm ci --omit=dev
 COPY . .
 
 RUN mkdir -p /app/data

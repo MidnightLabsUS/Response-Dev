@@ -7,7 +7,7 @@ services:
     depends_on:
       - asterisk
     ports:
-      - "2668:3000"
+      - "2668:2668"
     volumes:
       - smartboot-data:/app/data
       - ./secrets:/run/secrets:ro

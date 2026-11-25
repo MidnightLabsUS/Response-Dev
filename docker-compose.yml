@@ -3,11 +3,8 @@ services:
     build: .
     container_name: smartboot-discordbot
     restart: unless-stopped
+    network_mode: host
     env_file: .env
-    ports:
-      - "2668:3000"
-      - "5060:5060/udp"
-      - "10000:10000/udp"
     volumes:
       - smartboot-data:/app/data
       - ./secrets:/run/secrets:ro

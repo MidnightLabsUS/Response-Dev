@@ -86,9 +86,9 @@ client.on("interactionCreate", async (interaction) => {
 				case "status":
 					await interaction.deferReply({flags:64});
 					const dbOk=await new Promise(resolve=>db.get("SELECT 1 AS ok",err=>resolve(!err)));
-					const pbxOk=checkConnection?await checkConnection().then(()=>true).catch(()=>false):false;
+					const sipOk=checkConnection?await checkConnection().then(()=>true).catch(()=>false):false;
 					const discordOk=client.isReady();
-					interaction.editReply("**SmartBoot Service Status**\nDiscord: "+(discordOk?"Online":"Offline")+"\nAPI: Online\nDatabase: "+(dbOk?"Connected":"Unavailable")+"\nSIP: "+(pbxOk?"Configured":"Unavailable"));
+					interaction.editReply("**SmartBoot Service Status**\nDiscord: "+(discordOk?"Online":"Offline")+"\nAPI: Online\nDatabase: "+(dbOk?"Connected":"Unavailable")+"\nSIP: "+(sipOk?"Configured":"Unavailable"));
 					break;
 				case "setup":
 					await interaction.deferReply({flags:64});

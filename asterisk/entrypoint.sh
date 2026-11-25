@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-mkdir-p /var/lib/asterisk/sounds/custom/calls
+mkdir -p /var/lib/asterisk/sounds/custom/calls
 cat >/etc/asterisk/pjsip.conf <<EOF
 [transport-udp]
 type=transport

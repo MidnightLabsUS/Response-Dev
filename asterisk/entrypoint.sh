@@ -38,6 +38,11 @@ identify_by=ip
 type=aor
 contact=sip:${SIP_SERVER}:${SIP_SERVER_PORT:-5060}
 
+[provider-identify]
+type=identify
+endpoint=provider
+match=${SIP_SERVER}/32
+
 [provider-reg]
 type=registration
 transport=transport-udp

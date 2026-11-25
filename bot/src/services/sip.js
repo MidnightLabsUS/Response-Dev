@@ -20,4 +20,31 @@ async function originate(number,audio){
  return true;
 }
 async function checkConnection(){cfg();await ami("Ping",{});console.log("[ASTERISK] AMI connected");return true}
-module.exports={originate,checkConnection};
+async function checkRegistration(){
+ cfg();
+ return new Promise((resolve,reject)=>{
+  const s=net.createConnection(Number(process.env.ASTERISK_AMI_PORT||5038),process.env.ASTERISK_AMI_HOST||"asterisk");
+  let b="",sent=false,finished=false,registration=null;
+  const finish=(err,result)=>{if(finished)return;finished=true;s.destroy();err?reject(err):resolve(result)};
+  s.setTimeout(10000,()=>finish(Error("Asterisk registration check timed out")));
+  s.on("error",e=>finish(e));
+  s.on("connect",()=>s.write(req({Action:"Login",ActionID:"login",Username:process.env.ASTERISK_AMI_USER||"smartboot",Secret:process.env.ASTERISK_AMI_PASSWORD,Events:"on"})));
+  s.on("data",d=>{
+   b+=d.toString();let i;
+   while((i=b.indexOf("\r\n\r\n"))>=0){
+    const block=b.slice(0,i);b=b.slice(i+4);const r={};
+    for(const line of block.split("\r\n")){const n=line.indexOf(":");if(n>0)r[line.slice(0,n).toLowerCase()]=line.slice(n+1).trim()}
+    if(!sent&&r.response){
+     if(r.response.toLowerCase()!=="success")return finish(Error(r.message||"Asterisk AMI login failed"));
+     sent=true;s.write(req({Action:"PJSIPShowRegistrationsOutbound",ActionID:"registration-check"}));
+    }else if(r.event&&r.event.toLowerCase()==="registrationstatus"){
+     registration=r;
+    }else if(r.event&&r.event.toLowerCase()==="eventlistcomplete"){
+     const status=(registration?.status||"Unknown").toLowerCase();
+     finish(null,{registered:status==="registered",status:registration?.status||"Not found",server:registration?.serveruri||process.env.SIP_SERVER,client:registration?.clienturi||process.env.SIP_USERNAME});
+    }else if(sent&&r.response&&r.response.toLowerCase()==="error")finish(Error(r.message||"Registration query failed"));
+   }
+  });
+ });
+}
+module.exports={originate,checkConnection,checkRegistration};

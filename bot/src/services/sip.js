@@ -7,7 +7,7 @@ const ami=(action,fields={})=>new Promise((resolve,reject)=>{
  const finish=(e,r)=>{if(done)return;done=true;s.destroy();e?reject(e):resolve(r)};
  s.setTimeout(10000,()=>finish(Error("Asterisk AMI timeout")));
  s.on("error",e=>finish(e));
- s.on("data",d=>{b+=d.toString();let i;while((i=b.indexOf("\r\n\r\n"))>=0){const x=b.slice(0,i);b=b.slice(i+4);const r={};for(const l of x.split("\r\n")){const n=l.indexOf(":");if(n>0)r[l.slice(0,n).toLowerCase()]=l.slice(n+1).trim()}if(r.response){if(!actionSent){if(r.response==="error")return finish(Error(r.message||"Asterisk AMI login failed"));actionSent=true;s.write(req({Action:action,ActionID:"smartboot-"+Date.now(),...fields}))}else finish(r.response==="success"?null:Error(r.message||"Asterisk AMI error"),r)}}});
+ s.on("data",d=>{b+=d.toString();let i;while((i=b.indexOf("\r\n\r\n"))>=0){const x=b.slice(0,i);b=b.slice(i+4);const r={};for(const l of x.split("\r\n")){const n=l.indexOf(":");if(n>0)r[l.slice(0,n).toLowerCase()]=l.slice(n+1).trim()}if(r.response){const status=r.response.toLowerCase();if(!actionSent){if(status!=="success")return finish(Error(r.message||"Asterisk AMI login failed"));actionSent=true;s.write(req({Action:action,ActionID:"smartboot-"+Date.now(),...fields}))}else finish(status==="success"?null:Error(r.message||"Asterisk AMI error"),r)}}});
  s.on("connect",()=>s.write(req({Action:"Login",ActionID:"login",Username:process.env.ASTERISK_AMI_USER||"smartboot",Secret:process.env.ASTERISK_AMI_PASSWORD,Events:"off"})));
 });
 async function originate(number,audio){

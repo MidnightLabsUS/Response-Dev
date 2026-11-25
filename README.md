@@ -19,7 +19,7 @@ Built by **Midnight Labs**.
 
 - Docker Engine and Docker Compose
 - A Discord application and bot token
-- A SIP provider or SIP server that supports outbound calls
+- A SIP provider that supports direct outbound SIP calls
 - Valid SIP authentication credentials
 - Network access to the SIP server
 
@@ -36,12 +36,15 @@ cp .env.example .env
 Edit `.env` and configure the Discord and SIP settings:
 
 ```env
-OUTBOUND_CALLERID=
-USERNAME=
-AUTHUSERNAME=
-PASSWORD=
 SIP_SERVER=
-SIP_SERVER_PORT=
+SIP_SERVER_PORT=5060
+SIP_DOMAIN=
+SIP_USERNAME=
+SIP_AUTH_USERNAME=
+SIP_PASSWORD=
+SIP_CALLER_ID=
+SIP_ADVERTISED_IP=
+SIP_RTP_PORT=10000
 ```
 
 Then start the service:

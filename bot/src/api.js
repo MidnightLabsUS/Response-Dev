@@ -192,8 +192,9 @@ app.get('/api/healthcheck', async (req, res) => {
 	});
 	checks.asterisk = await require('./services/sip').checkConnection().then(() => ({ status: 'online', message: 'Asterisk AMI is reachable' })).catch(error => ({ status: 'offline', message: error.message }));
 	const sipConfigured = ['SIP_SERVER','SIP_SERVER_PORT','SIP_USERNAME','SIP_AUTH_USERNAME','SIP_PASSWORD','SIP_ADVERTISED_IP'].every(key => Boolean(process.env[key]));
-	checks.sip = { status: sipConfigured ? 'configured' : 'misconfigured', message: sipConfigured ? 'SIP provider settings are present' : 'One or more SIP provider settings are missing' };
-	const failed = Object.values(checks).some(check => ['offline','misconfigured'].includes(check.status));
+	if (!sipConfigured) checks.sip = { status: 'misconfigured', message: 'One or more SIP provider settings are missing' };
+	else checks.sip = await require('./services/sip').checkRegistration().then(result => ({ status: result.registered ? 'registered' : 'not_registered', message: 'Provider registration: ' + result.status, server: result.server, username: result.client })).catch(error => ({ status: 'unknown', message: error.message }));
+	const failed = Object.values(checks).some(check => ['offline','misconfigured','not_registered','unknown'].includes(check.status));
 	res.status(failed ? 503 : 200).json({
 		status: failed ? 'degraded' : 'healthy',
 		healthy: !failed,

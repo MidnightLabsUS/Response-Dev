@@ -73,7 +73,7 @@ bindaddr=0.0.0.0
 [${ASTERISK_AMI_USER:-smartboot}]
 secret=${ASTERISK_AMI_PASSWORD}
 read=system,call,log,verbose,command,agent,user,config,dtmf,reporting,cdr,dialplan
-write=system,call,log,verbose,command,agent,user,config,dtmf,reporting,cdr,dialplan
+write=system,call,originate,log,verbose,command,agent,user,config,dtmf,reporting,cdr,dialplan
 permit=172.16.0.0/12
 permit=192.168.0.0/16
 permit=127.0.0.0/8

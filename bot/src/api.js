@@ -182,15 +182,26 @@ app.ws("/api/v1/websocket/:accountNumber", (ws, req) => {
 });
 
 
-app.get('/api/healthcheck', (req, res) => {
-	// Check if the bot is logged in and connected to Discord
-	const botHealthy = client.isReady();
-
-	// Respond with the health check status
-	res.json({
-		healthy: botHealthy,
-		botStatus: botHealthy ? 'Bot is connected and healthy' : 'Bot is not connected or has failed',
-		timestamp: new Date(),
+app.get('/api/healthcheck', async (req, res) => {
+	const timestamp = new Date().toISOString();
+	const checks = {};
+	checks.api = { status: 'online', message: 'API is responding' };
+	checks.bot = { status: client.isReady() ? 'online' : 'offline', message: client.isReady() ? 'Discord bot is connected' : 'Discord bot is not connected' };
+	checks.database = await new Promise(resolve => {
+		db.get('SELECT 1 AS ok', (err, row) => resolve({ status: !err && row && row.ok === 1 ? 'online' : 'offline', message: err ? err.message : row ? 'Database query successful' : 'Database query failed' }));
+	});
+	checks.asterisk = await require('./services/sip').checkConnection().then(() => ({ status: 'online', message: 'Asterisk AMI is reachable' })).catch(error => ({ status: 'offline', message: error.message }));
+	const sipConfigured = ['SIP_SERVER','SIP_SERVER_PORT','SIP_USERNAME','SIP_AUTH_USERNAME','SIP_PASSWORD','SIP_ADVERTISED_IP'].every(key => Boolean(process.env[key]));
+	checks.sip = { status: sipConfigured ? 'configured' : 'misconfigured', message: sipConfigured ? 'SIP provider settings are present' : 'One or more SIP provider settings are missing' };
+	const failed = Object.values(checks).some(check => ['offline','misconfigured'].includes(check.status));
+	res.status(failed ? 503 : 200).json({
+		status: failed ? 'degraded' : 'healthy',
+		healthy: !failed,
+		service: 'SmartBoot Response',
+		version: require('../../package.json').version,
+		uptime: Math.floor(process.uptime()),
+		timestamp,
+		checks
 	});
 });
 

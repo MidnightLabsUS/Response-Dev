@@ -6,6 +6,7 @@ services:
     env_file: .env
     ports:
       - "2668:3000"
+      - "5060:5060/udp"
       - "10000:10000/udp"
     volumes:
       - smartboot-data:/app/data

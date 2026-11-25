@@ -7,6 +7,7 @@ type=transport
 protocol=udp
 bind=0.0.0.0:5060
 local_net=172.16.0.0/12
+local_net=192.168.0.0/16
 local_net=127.0.0.0/8
 external_signaling_address=${SIP_ADVERTISED_IP}
 external_media_address=${SIP_ADVERTISED_IP}
@@ -68,6 +69,7 @@ secret=${ASTERISK_AMI_PASSWORD}
 read=system,call,log,verbose,command,agent,user,config,dtmf,reporting,cdr,dialplan
 write=system,call,log,verbose,command,agent,user,config,dtmf,reporting,cdr,dialplan
 permit=172.16.0.0/12
+permit=192.168.0.0/16
 permit=127.0.0.0/8
 EOF
 cat >/etc/asterisk/rtp.conf <<EOF

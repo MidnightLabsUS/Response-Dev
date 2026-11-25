@@ -21,7 +21,9 @@ Built by **Midnight Labs**.
 - A Discord application and bot token
 - A SIP provider that supports direct outbound SIP calls
 - Valid SIP authentication credentials
-- Network access to the SIP server
+- A public server IP reachable for SIP/RTP
+
+No PBX, Asterisk, FreePBX, or other local SIP server is required.
 
 ## Quick start
 
@@ -36,6 +38,8 @@ cp .env.example .env
 Edit `.env` and configure the Discord and SIP settings:
 
 ```env
+DISCORD_TOKEN=
+
 SIP_SERVER=
 SIP_SERVER_PORT=5060
 SIP_DOMAIN=
@@ -47,6 +51,24 @@ SIP_ADVERTISED_IP=
 SIP_RTP_PORT=10000
 ```
 
+### SIP settings
+
+| Variable | Purpose |
+|---|---|
+| `SIP_SERVER` | SIP provider/server hostname or IP |
+| `SIP_SERVER_PORT` | SIP signaling port, normally 5060 |
+| `SIP_DOMAIN` | SIP domain used in the destination URI; leave blank to use `SIP_SERVER` |
+| `SIP_USERNAME` | SIP account username |
+| `SIP_AUTH_USERNAME` | SIP digest authentication username |
+| `SIP_PASSWORD` | SIP digest authentication password |
+| `SIP_CALLER_ID` | Number or SIP identity used as the outbound caller ID |
+| `SIP_ADVERTISED_IP` | Public IP address the SIP provider should send RTP audio to |
+| `SIP_RTP_PORT` | UDP port used for RTP audio |
+
+`SIP_CALLER_ID` is the identity/number shown to the destination when supported by the SIP provider.
+
+`SIP_ADVERTISED_IP` must normally be the public IP of the server running SmartBoot Response, not the Docker/container IP. The configured RTP UDP port must be reachable from the SIP provider.
+
 Then start the service:
 
 ```bash
@@ -55,21 +77,24 @@ docker compose up -d --build
 
 The API listens on port `3000` inside the container. Configure your reverse proxy and HTTPS before exposing it publicly.
 
+## How calls work
+
+SmartBoot Response generates the alert audio locally, sends a SIP INVITE directly to the configured SIP provider, authenticates with the configured SIP credentials, receives the RTP destination from the provider, and sends the audio directly over RTP.
+
+There is no PBX in the call path.
+
 ## Configuration
 
 See [`.env.example`](.env.example) for all supported environment variables.
 
-Important settings:
+Other important settings:
 
 | Variable | Purpose |
 |---|---|
 | `DISCORD_TOKEN` | Discord bot token |
-| `OUTBOUND_CALLERID` | Caller ID used for outbound calls |
-| `USERNAME` | SIP username |
-| `AUTHUSERNAME` | SIP authentication username |
-| `PASSWORD` | SIP authentication password |
-| `SIP_SERVER` | SIP server address |
-| `SIP_SERVER_PORT` | SIP server port |
+| `PORT` | HTTP API port |
+| `MAX_LENGTH` | Maximum alert input length |
+| `CALL_PREFIX_TEXT` | Text added before phone messages |
 | `ADMIN_DISCORD_IDS` | Comma-separated administrator Discord user IDs |
 | `ADMIN_ROLE_IDS` | Comma-separated administrator role IDs |
 

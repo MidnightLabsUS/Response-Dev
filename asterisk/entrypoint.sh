@@ -32,6 +32,7 @@ callerid=${SIP_CALLER_ID}
 direct_media=no
 rtp_symmetric=yes
 force_rport=yes
+identify_by=ip
 
 [provider]
 type=aor

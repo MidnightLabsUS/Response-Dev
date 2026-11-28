@@ -126,7 +126,7 @@ function sendAlert(accountNumber, transaction, placeName, systemName, zoneNumber
 										if (err) {
 											console.error(err);
 										} else if (row) {
-											originate(row.phone,`/tmp/${transaction}-alert.wav`).then(() => {
+											originateOnce(row.phone,`/tmp/${transaction}-alert.wav`).then(sent => {if(!sent)return;
 												console.log(`Alert sent to ${row.phone}`);
 											db.run("INSERT INTO alert_history (transaction_id,account_id,source_account_id,place_name,system_name,zone_number,zone_name,event_name,delivered_at) VALUES (?,?,?,?,?,?,?,?,?)",String(transaction),String(row.id),String(accountNumber),placeName,systemName,String(zoneNumber??""),zoneName,event,new Date().toISOString(),err=>{if(err)console.error("[ALERT HISTORY]",err);});
 											}).catch((error) => {
@@ -211,7 +211,7 @@ function sendTTS(accountNumber, transaction, text) {
 										if (err) {
 											console.error(err);
 										} else if (row) {
-											originate(row.phone,`/tmp/${transaction}-tts.wav`).then(() => {
+											originateOnce(row.phone,`/tmp/${transaction}-tts.wav`).then(sent => {if(!sent)return;
 												console.log(`TTS sent to ${row.to}`);
 												db.run("INSERT INTO alert_history (transaction_id,account_id,source_account_id,place_name,system_name,zone_number,zone_name,event_name,delivered_at) VALUES (?,?,?,?,?,?,?,?,?)",String(transaction),String(row.id),String(accountNumber),"TTS Alert","Phone","","",String(text),new Date().toISOString(),err=>{if(err)console.error("[ALERT HISTORY]",err);});
 											}).catch((error) => {

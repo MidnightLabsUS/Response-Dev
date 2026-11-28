@@ -99,8 +99,12 @@ fi
 cat >/etc/asterisk/extensions.conf <<'EOF'
 [smartboot-outbound]
 exten => _X.,1,NoOp(SmartBoot call to ${EXTEN})
+ same => n,Set(GROUP(smartboot)=${EXTEN})
+ same => n,GotoIf($[${GROUP_COUNT(${EXTEN}@smartboot)}>1]?duplicate)
  same => n,Set(__ALERT_FILE=${ALERT_FILE})
  same => n,Dial(PJSIP/${EXTEN}@provider2,30,U(smartboot-play^s^1))
+ same => n,Hangup()
+ same => n(duplicate),NoOp(Duplicate call blocked for ${EXTEN})
  same => n,Hangup()
 
 [smartboot-play]

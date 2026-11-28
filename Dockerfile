@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim
+FROM node:20-noble
 
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg openssh-client python3 python3-venv python3-setuptools build-essential && rm -rf /var/lib/apt/lists/*
 
@@ -9,7 +9,7 @@ RUN /opt/piper/bin/python -m piper.download_voices en_US-lessac-medium
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm_config_build_from_source=true npm install --omit=dev
+RUN npm install --omit=dev
 COPY . .
 
 RUN mkdir -p /app/data

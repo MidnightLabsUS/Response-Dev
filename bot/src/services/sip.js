@@ -1,5 +1,5 @@
 const fs=require("fs"),net=require("net"),path=require("path");
-const req=h=>Object.entries(h).map(([k,v])=>k+": "+v).join("\r\n")+"\r\n\r\n";
+const req=h=>Object.entries(h).map(([k,v])=>k+": "+v).join("\r\n")+"\r\n\r\n";\nconst active=new Map();
 const cfg=()=>{for(const k of["ASTERISK_AMI_PASSWORD","SIP_SERVER","SIP_USERNAME","SIP_PASSWORD","SIP_ADVERTISED_IP"])if(!process.env[k])throw Error(k+" is required")};
 const ami=(action,fields={})=>new Promise((resolve,reject)=>{
  const s=net.createConnection(Number(process.env.ASTERISK_AMI_PORT||5038),process.env.ASTERISK_AMI_HOST||"asterisk");
@@ -14,7 +14,7 @@ async function originate(number,audio){
  cfg();number=String(number).replace(/[^0-9+]/g,"");if(!number)throw Error("Invalid destination phone number");
  const id=path.basename(audio).replace(/\.wav$/i,"").replace(/[^a-zA-Z0-9_-]/g,""),dir="/app/data/calls",file=path.join(dir,id+".wav");
  await fs.promises.mkdir(dir,{recursive:true});await fs.promises.copyFile(audio,file);
- await ami("Originate",{Channel:"Local/"+number+"@smartboot-outbound",Timeout:"30000",CallerID:process.env.SIP_CALLER_ID||"SmartBoot Response",Variable:"__ALERT_FILE=calls/"+id,Async:"true"});
+ try{await ami("Originate",{Channel:"Local/"+number+"@smartboot-outbound",Timeout:"30000",CallerID:process.env.SIP_CALLER_ID||"SmartBoot Response",Variable:"__ALERT_FILE=calls/"+id,Async:"true"})}catch(e){active.delete(number);throw e}
  console.log("[ASTERISK] Call queued to",number);
  setTimeout(()=>fs.promises.unlink(file).catch(()=>{}),10*60*1000).unref();
  return true;

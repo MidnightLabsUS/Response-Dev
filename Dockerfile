@@ -1,4 +1,4 @@
-FROM node:20-noble
+FROM node:20.20.2-trixie
 
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg openssh-client python3 python3-venv python3-setuptools build-essential && rm -rf /var/lib/apt/lists/*
 

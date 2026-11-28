@@ -52,11 +52,59 @@ client_uri=sip:${SIP_USERNAME}@${SIP_DOMAIN:-$SIP_SERVER}
 contact_user=${SIP_USERNAME}
 retry_interval=60
 EOF
+if [ -n "${SIP_BACKUP_SERVER:-}" ];then
+cat >>/etc/asterisk/pjsip.conf <<EOF
+
+[provider2-auth]
+type=auth
+auth_type=userpass
+username=${SIP_BACKUP_AUTH_USERNAME:-$SIP_BACKUP_USERNAME}
+password=${SIP_BACKUP_PASSWORD}
+
+[provider2]
+type=endpoint
+transport=transport-udp
+context=smartboot-outbound
+disallow=all
+allow=ulaw
+aors=provider2
+outbound_auth=provider2-auth
+from_user=${SIP_BACKUP_USERNAME}
+from_domain=${SIP_BACKUP_DOMAIN:-$SIP_BACKUP_SERVER}
+callerid=${SIP_BACKUP_CALLER_ID:-$SIP_CALLER_ID}
+direct_media=no
+rtp_symmetric=yes
+force_rport=yes
+identify_by=ip
+
+[provider2]
+type=aor
+contact=sip:${SIP_BACKUP_SERVER}:${SIP_BACKUP_SERVER_PORT:-5060}
+
+[provider2-identify]
+type=identify
+endpoint=provider2
+match=${SIP_BACKUP_IDENTIFY_IP:-$SIP_BACKUP_SERVER}/32
+
+[provider2-reg]
+type=registration
+transport=transport-udp
+outbound_auth=provider2-auth
+server_uri=sip:${SIP_BACKUP_SERVER}:${SIP_BACKUP_SERVER_PORT:-5060}
+client_uri=sip:${SIP_BACKUP_USERNAME}@${SIP_BACKUP_DOMAIN:-$SIP_BACKUP_SERVER}
+contact_user=${SIP_BACKUP_USERNAME}
+retry_interval=60
+EOF
+fi
 cat >/etc/asterisk/extensions.conf <<'EOF'
 [smartboot-outbound]
 exten => _X.,1,NoOp(SmartBoot call to ${EXTEN})
  same => n,Set(__ALERT_FILE=${ALERT_FILE})
  same => n,Dial(PJSIP/${EXTEN}@provider,30,U(smartboot-play^s^1))
+ same => n,GotoIf($["${DIALSTATUS}"="CHANUNAVAIL"||"${DIALSTATUS}"="CONGESTION"||"${DIALSTATUS}"="NOANSWER"]?backup)
+ same => n,Hangup()
+ same => n(backup),NoOp(Primary provider failed: ${DIALSTATUS})
+ same => n,Dial(PJSIP/${EXTEN}@provider2,30,U(smartboot-play^s^1))
  same => n,Hangup()
 
 [smartboot-play]

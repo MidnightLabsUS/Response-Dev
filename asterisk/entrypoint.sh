@@ -100,10 +100,6 @@ cat >/etc/asterisk/extensions.conf <<'EOF'
 [smartboot-outbound]
 exten => _X.,1,NoOp(SmartBoot call to ${EXTEN})
  same => n,Set(__ALERT_FILE=${ALERT_FILE})
- same => n,Dial(PJSIP/${EXTEN}@provider,30,U(smartboot-play^s^1))
- same => n,GotoIf($["${DIALSTATUS}"="CHANUNAVAIL"||"${DIALSTATUS}"="CONGESTION"||"${DIALSTATUS}"="NOANSWER"]?backup)
- same => n,Hangup()
- same => n(backup),NoOp(Primary provider failed: ${DIALSTATUS})
  same => n,Dial(PJSIP/${EXTEN}@provider2,30,U(smartboot-play^s^1))
  same => n,Hangup()
 

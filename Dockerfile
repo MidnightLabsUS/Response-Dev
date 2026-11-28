@@ -9,7 +9,7 @@ RUN /opt/piper/bin/python -m piper.download_voices en_US-lessac-medium
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm_config_build_from_source=true npm ci --omit=dev
+RUN npm install --omit=dev
 COPY . .
 
 RUN mkdir -p /app/data

@@ -1,4 +1,4 @@
-const fs=require("fs");const colors=require("colors");const db=require("./database");const ttsCommands=require("../config/tts.json");const demo=require("../../config/demo");const {runCommand,runFile}=require("./runtime");const {generateTTS}=require("./services/tts");const {originate}=require("./services/sip");const {buildAlertSpeech,sanitizeForTTS,withRepeatPrompt}=require("./speech");let handledTransactions=[];let client;
+const fs=require("fs");const colors=require("colors");const db=require("./database");const ttsCommands=require("../config/tts.json");const demo=require("../../config/demo");const {runCommand,runFile}=require("./runtime");const {generateTTS}=require("./services/tts");const {originate}=require("./services/sip");const {buildAlertSpeech,sanitizeForTTS,withRepeatPrompt}=require("./speech");let handledTransactions=[];let activeAccounts=new Set();let client;
 function generateAccountNumber() {
 	let accountNumber = Math.floor(Math.random() * 10000000000);
 	db.get("SELECT * FROM accounts WHERE id = ?", accountNumber, (err, row) => {

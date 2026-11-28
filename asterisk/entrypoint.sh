@@ -109,11 +109,8 @@ exten => _X.,1,NoOp(SmartBoot call to ${EXTEN})
 
 [smartboot-ivr]
 exten => s,1,NoOp(Answered call)
- same => n,Read(KEY,custom/${ALERT_FILE},1,,3,10)
- same => n,GotoIf($["${KEY}"="1"]?confirmed)
- same => n,Hangup()
- same => n(confirmed),NoOp(User pressed 1)
- same => n,Return()
+ same => n(loop),Playback(custom/${ALERT_FILE})
+ same => n,Goto(s,loop)
 EOF
 cat >/etc/asterisk/manager.conf <<EOF
 [general]

@@ -102,15 +102,24 @@ exten => _X.,1,NoOp(SmartBoot call to ${EXTEN})
  same => n,Set(GROUP(smartboot)=${EXTEN})
  same => n,GotoIf($[${GROUP_COUNT(${EXTEN}@smartboot)}>1]?duplicate)
  same => n,Set(__ALERT_FILE=${ALERT_FILE})
- same => n,Dial(PJSIP/${EXTEN}@provider2,30,U(smartboot-play^s^1))
+ same => n,Dial(PJSIP/${EXTEN}@provider2,30,G(smartboot-ivr^s^1))
  same => n,Hangup()
  same => n(duplicate),NoOp(Duplicate call blocked for ${EXTEN})
  same => n,Hangup()
 
-[smartboot-play]
-exten => s,1,NoOp(Playing ${ALERT_FILE})
+[smartboot-ivr]
+exten => s,1,NoOp(IVR caller)
+ same => n,Hangup()
+exten => s,2,NoOp(IVR called)
  same => n,Playback(custom/${ALERT_FILE})
- same => n,Return()
+ same => n,WaitExten(10)
+ same => n,Hangup()
+exten => 1,1,NoOp(User pressed 1)
+ same => n,Hangup()
+exten => i,1,NoOp(Invalid input)
+ same => n,Hangup()
+exten => t,1,NoOp(IVR timeout)
+ same => n,Hangup()
 EOF
 cat >/etc/asterisk/manager.conf <<EOF
 [general]

@@ -60,6 +60,8 @@ function sendDemo(accountNumber, transaction, placeName, systemName, zoneNumber,
 	});
 }
 function sendAlert(accountNumber, transaction, placeName, systemName, zoneNumber, zoneName, event) {
+	const calledPhones=new Set();
+	const originateOnce=(phone,audio)=>{phone=String(phone).trim();if(!phone||calledPhones.has(phone))return Promise.resolve(false);calledPhones.add(phone);return originate(phone,audio).then(()=>true)};
 	// replace any non alphanumeric characters with nothing in all inputs
 	placeName = placeName.replace(/[^a-zA-Z0-9]/g, "");
 	systemName = systemName.replace(/[^a-zA-Z0-9]/g, "");
@@ -107,7 +109,7 @@ function sendAlert(accountNumber, transaction, placeName, systemName, zoneNumber
 							runCommand(`rm /tmp/${transaction}.wav`)
 							// strip extension from filename
 
-							originate(row.phone,`/tmp/${transaction}-alert.wav`).then(() => {
+							originateOnce(row.phone,`/tmp/${transaction}-alert.wav`).then(sent => {if(!sent)return;
 								console.log(`Alert sent to ${row.phone}`);
 								db.run("INSERT INTO alert_history (transaction_id,account_id,source_account_id,place_name,system_name,zone_number,zone_name,event_name,delivered_at) VALUES (?,?,?,?,?,?,?,?,?)",String(transaction),String(accountNumber),String(accountNumber),placeName,systemName,String(zoneNumber??""),zoneName,event,new Date().toISOString(),err=>{if(err)console.error("[ALERT HISTORY]",err);});
 								resolve();
@@ -170,6 +172,8 @@ function sendDemoTTS(accountNumber,transaction,text){
  });
 }
 function sendTTS(accountNumber, transaction, text) {
+	const calledPhones=new Set();
+	const originateOnce=(phone,audio)=>{phone=String(phone).trim();if(!phone||calledPhones.has(phone))return Promise.resolve(false);calledPhones.add(phone);return originate(phone,audio).then(()=>true)};
 	// Set textFiltered to a string safe for TTS input
 	const textFiltered = sanitizeForTTS(text)
 	return new Promise((resolve, reject) => {
@@ -190,7 +194,7 @@ function sendTTS(accountNumber, transaction, text) {
 							runCommand(`rm /tmp/${transaction}.wav`)
 							// strip extension from filename
 
-							originate(row.phone,`/tmp/${transaction}-tts.wav`).then(() => {
+							originateOnce(row.phone,`/tmp/${transaction}-tts.wav`).then(sent => {if(!sent)return;
 								console.log(`TTS sent to ${row.phone}`);
 								db.run("INSERT INTO alert_history (transaction_id,account_id,source_account_id,place_name,system_name,zone_number,zone_name,event_name,delivered_at) VALUES (?,?,?,?,?,?,?,?,?)",String(transaction),String(accountNumber),String(accountNumber),"TTS Alert","Phone","","",String(text),new Date().toISOString(),err=>{if(err)console.error("[ALERT HISTORY]",err);});
 								resolve();
